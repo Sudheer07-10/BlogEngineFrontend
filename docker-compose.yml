@@ -4,8 +4,8 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        - VITE_API_URL=http://localhost:8000
+        - VITE_API_URL=http://localhost:8060
     ports:
-      - "8070:80"
+      - "8070:8070"
     restart: always
     container_name: vertical-pulse-frontend
