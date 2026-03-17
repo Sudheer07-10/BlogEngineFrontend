@@ -1,33 +1,36 @@
-# Build stage
-FROM node:20-alpine as build-stage
+# Step 1: Build the React application
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies
-RUN npm ci
-
-# Copy source files
-COPY . .
-
-# Set build argument for API URL (can be overridden during build)
+# Accept build arguments for environment variables
 ARG VITE_API_URL
 ENV VITE_API_URL=$VITE_API_URL
 
-# Build the application
+# Copy package.json and package-lock.json
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy the rest of the application files
+COPY . .
+
+# Build the Vite application to the /dist folder
 RUN npm run build
 
-# Production stage
-FROM nginx:stable-alpine as production-stage
+# Step 2: Serve the application using Node/Vite preview
+FROM node:20-alpine
 
-# Change Nginx listen port to 8070
-RUN sed -i 's/80/8070/g' /etc/nginx/conf.d/default.conf
+WORKDIR /app
 
-# Copy build artifacts to nginx
-COPY --from=build-stage /app/dist /usr/share/nginx/html
+# Copy the built assets and package config from the builder stage
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/node_modules ./node_modules
 
-EXPOSE 8070
+# Expose port 9010
+EXPOSE 9010
 
-CMD ["nginx", "-g", "daemon off;"]
+# Start Vite preview server on port 9010
+CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "9010"]

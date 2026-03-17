@@ -1,11 +1,15 @@
+version: '3.8'
+
 services:
   frontend:
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        - VITE_API_URL=http://72.61.228.9:8060
+        # Inject the API URL at build time. 
+        # You can overwrite this by setting VITE_API_URL in your VPS environment or providing a .env file.
+        - VITE_API_URL=${VITE_API_URL:-http://72.61.228.9:9020}
+    container_name: vertical_pulse_frontend
     ports:
-      - "8070:8070"
-    restart: always
-    container_name: vertical-pulse-frontend
+      - "9010:9010" # Expose port 9010 to the host
+    restart: unless-stopped
