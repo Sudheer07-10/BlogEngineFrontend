@@ -22,13 +22,12 @@ RUN npm run build
 # Production stage
 FROM nginx:stable-alpine as production-stage
 
-# Copy custom nginx config for SPA routing
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Change Nginx listen port to 8070
+RUN sed -i 's/80/8070/g' /etc/nginx/conf.d/default.conf
 
 # Copy build artifacts to nginx
 COPY --from=build-stage /app/dist /usr/share/nginx/html
 
-# Copy custom nginx config if needed (optional, using default for now)
-# EXPOSE 80
+EXPOSE 8070
 
 CMD ["nginx", "-g", "daemon off;"]
