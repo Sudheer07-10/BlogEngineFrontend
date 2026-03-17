@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        - VITE_API_URL=http://localhost:8060
+        - VITE_API_URL=http://72.61.228.9:8060
     ports:
       - "8070:8070"
     restart: always
