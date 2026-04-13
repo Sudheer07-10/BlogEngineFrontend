@@ -23,9 +23,33 @@ function formatTimeAgo(isoString) {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-export default function ContentCard({ card, index = 0, onDelete }) {
+export default function ContentCard({ card, index = 0, onDelete, platform = 'cp' }) {
     const animDelay = `${index * 0.08}s`;
     const [copied, setCopied] = useState(false);
+
+    // Track a view when the card is displayed
+    useEffect(() => {
+        const trackView = async () => {
+            try {
+                await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/links/${card.id}/track?field=views&platform=${platform}`, {
+                    method: 'POST'
+                });
+            } catch (err) {
+                console.error("Failed to track view:", err);
+            }
+        };
+        trackView();
+    }, [card.id, platform]);
+
+    const handleTrackClick = async () => {
+        try {
+            await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/links/${card.id}/track?field=clicks&platform=${platform}`, {
+                method: 'POST'
+            });
+        } catch (err) {
+            console.error("Failed to track click:", err);
+        }
+    };
 
     const handleDelete = async (e) => {
         e.preventDefault();
@@ -60,18 +84,13 @@ export default function ContentCard({ card, index = 0, onDelete }) {
     const handleSocialShare = (platform) => {
         const shareUrl = `${window.location.origin}/card/${card.id}`;
         
-        // Format the content: "Title\n\nSummary"
-        const fullContent = `${card.title}\n\n${card.summary}`;
-        
-        // Truncate for X (Twitter) to ensure it fits with the URL
-        // X limit is 280, URL takes ~23 chars, leave some buffer
-        let xContent = fullContent;
+        // Use only the title for X (Twitter)
+        let xContent = card.title || "";
         if (xContent.length > 240) {
             xContent = xContent.substring(0, 237) + "...";
         }
 
         const encodedXText = encodeURIComponent(xContent);
-        const encodedFullText = encodeURIComponent(fullContent);
         const encodedUrl = encodeURIComponent(shareUrl);
 
         let finalUrl = '';
@@ -151,7 +170,10 @@ export default function ContentCard({ card, index = 0, onDelete }) {
                         target="_blank"
                         rel="noopener noreferrer"
                         id={`read-more-${card.id}`}
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleTrackClick();
+                        }}
                     >
                         Read full article
                         <span className="content-card__read-more-arrow">→</span>

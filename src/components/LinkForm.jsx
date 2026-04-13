@@ -17,26 +17,24 @@ export default function LinkForm({ onLinkAdded, onDiscovery, selectedPlatform, o
     ];
 
     const platforms = [
-        { id: 'cp', label: '🎓 Course Platform', table: 'cp_blogs' },
-        { id: 'sakhi', label: '⚖️ Janmasethu', table: 'sakhi_blogs' },
-        { id: 'jobs', label: '💼 Jobs', table: 'jobs_blogs' }
+        { id: 'cp_blogs', label: '🎓 Course Platform' },
+        { id: 'sakhi_blogs', label: '⚖️ Janmasethu' },
+        { id: 'oa_blogs', label: '🏫 Ottobon Academy' },
+        { id: 'jobs_blogs', label: '💼 Jobs' }
     ];
 
-    const handleAction = async (e, mode = 'direct') => {
+    const handleAction = async (e, mode = 'discover') => {
         if (e) e.preventDefault();
-
         const trimmed = url.trim();
         if (!trimmed) return;
-
         setLoading(true);
         setError('');
-
         try {
             const payload = { 
                 query: trimmed, 
                 url: trimmed,
                 vertical: selectedVertical === 'General' ? '' : selectedVertical,
-                platform: selectedPlatform
+                platform: selectedPlatform.split('_')[0]
             };
 
             if (mode === 'discover') {
@@ -45,97 +43,98 @@ export default function LinkForm({ onLinkAdded, onDiscovery, selectedPlatform, o
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload),
                 });
-
-                if (!res.ok) {
-                    const data = await res.json().catch(() => ({}));
-                    throw new Error(data.detail || `Discovery failed (${res.status})`);
-                }
-
+                if (!res.ok) throw new Error('Discovery failed');
                 const data = await res.json();
                 onDiscovery?.(data.options);
                 setUrl('');
             } else {
-                const res = await fetch(`${API_URL}/api/links?platform=${selectedPlatform}`, {
+                const res = await fetch(`${API_URL}/api/links?platform=${selectedPlatform.split('_')[0]}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload),
                 });
-
-                if (!res.ok) {
-                    const data = await res.json().catch(() => ({}));
-                    throw new Error(data.detail || `Publish failed (${res.status})`);
-                }
-
+                if (!res.ok) throw new Error('Publish failed');
                 setUrl('');
                 onLinkAdded?.();
             }
         } catch (err) {
-            setError(err.message || 'Failed to process. Please try again.');
+            setError(err.message);
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="link-form">
-            <div className="platform-selector">
-                <label className="platform-selector__label">Target Platform:</label>
-                <select 
-                    className="platform-selector__select"
-                    value={selectedPlatform}
-                    onChange={(e) => onPlatformChange(e.target.value)}
-                >
-                    {platforms.map(p => (
-                        <option key={p.id} value={p.id}>{p.label}</option>
-                    ))}
-                </select>
-            </div>
-
-            <div className="vertical-chips">
-                {verticals.map((v) => (
-                    <button
-                        key={v.id}
-                        type="button"
-                        className={`vertical-chip ${selectedVertical === v.id ? 'vertical-chip--active' : ''}`}
-                        onClick={() => setSelectedVertical(v.id)}
+        <div style={{ padding: '8px' }}>
+            {/* Top Controls: Platform & Verticals */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '24px', marginBottom: '40px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <span className="premium-label" style={{ marginBottom: 0 }}>Targeting</span>
+                    <select 
+                        className="premium-select"
+                        value={selectedPlatform}
+                        onChange={(e) => onPlatformChange(e.target.value)}
                     >
-                        <span className="vertical-chip__icon">{v.icon}</span>
-                        {v.id}
-                    </button>
-                ))}
+                        {platforms.map(p => (
+                            <option key={p.id} value={p.id}>{p.label}</option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="vertical-chips">
+                    {verticals.map((v) => (
+                        <button
+                            key={v.id}
+                            type="button"
+                            className={`vertical-chip ${selectedVertical === v.id ? 'active' : ''}`}
+                            onClick={() => setSelectedVertical(v.id)}
+                        >
+                            <span>{v.icon}</span>
+                            {v.id}
+                        </button>
+                    ))}
+                </div>
             </div>
 
+            {/* Input Wrapper */}
             <form onSubmit={(e) => handleAction(e, 'discover')}>
-                <div className="link-form__wrapper">
-                    <input
-                        id="url-input"
-                        type="text"
-                        className="link-form__input"
-                        placeholder={selectedVertical === 'General' 
-                            ? "Paste article URL or search any topic..."
-                            : `Search trending ${selectedVertical} topics...`
-                        }
-                        value={url}
-                        onChange={(e) => {
-                            setUrl(e.target.value);
-                            setError('');
-                        }}
-                        disabled={loading}
-                        autoComplete="off"
-                    />
-                    <div style={{ display: 'flex', gap: '8px', paddingRight: '6px' }}>
+                <div style={{ position: 'relative', display: 'flex', gap: '12px' }}>
+                    <div style={{ flex: 1, position: 'relative' }}>
+                        <input
+                            type="text"
+                            className="premium-input-minimal"
+                            style={{ paddingRight: '120px' }}
+                            placeholder={selectedVertical === 'General' 
+                                ? "Paste article URL or search any topic..."
+                                : `Search trending ${selectedVertical} topics...`
+                            }
+                            value={url}
+                            onChange={(e) => {
+                                setUrl(e.target.value);
+                                setError('');
+                            }}
+                            disabled={loading}
+                        />
+                        {loading && (
+                            <div style={{ position: 'absolute', right: '140px', top: '50%', transform: 'translateY(-50%)' }}>
+                                <div className="loading-spinner-small"></div>
+                            </div>
+                        )}
+                    </div>
+                    
+                    <div style={{ display: 'flex', gap: '12px' }}>
                         <button
-                            id="submit-btn"
                             type="submit"
-                            className={`link-form__btn ${loading ? 'link-form__btn--loading' : ''}`}
+                            className="btn-primary-minimal"
+                            style={{ minWidth: '130px' }}
                             disabled={loading || !url.trim()}
                         >
-                            {loading ? '...' : '🔍 Discover'}
+                            {loading ? 'Discovering...' : '🔍 Discover'}
                         </button>
                         <button
                             type="button"
-                            className="link-form__btn"
-                            style={{ background: 'var(--bg-glass)', color: 'var(--text-secondary)', border: '1px solid var(--border-glass)' }}
+                            className="btn-primary-minimal"
+                            style={{ background: 'var(--bg-highlight)', color: 'var(--accent-orange)', minWidth: '110px' }}
                             onClick={(e) => handleAction(e, 'direct')}
                             disabled={loading || !url.trim()}
                         >
@@ -146,17 +145,8 @@ export default function LinkForm({ onLinkAdded, onDiscovery, selectedPlatform, o
             </form>
 
             {error && (
-                <div className="link-form__error" id="error-message">
+                <div style={{ marginTop: '20px', color: '#ef4444', fontSize: '0.85rem', textAlign: 'center', fontWeight: '700', background: 'rgba(239, 68, 68, 0.05)', padding: '12px', borderRadius: '12px' }}>
                     ⚠️ {error}
-                </div>
-            )}
-
-            {loading && (
-                <div className="processing-toast">
-                    <div className="processing-toast__spinner" />
-                    <span className="processing-toast__text">
-                        Scraping & analyzing top coverage...
-                    </span>
                 </div>
             )}
         </div>

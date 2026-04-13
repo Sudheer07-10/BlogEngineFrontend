@@ -58,11 +58,8 @@ export default function SharePage() {
     const handleSocialShare = (platform) => {
         const shareUrl = window.location.href;
         
-        // Format the content: "Title\n\nSummary"
-        const fullContent = `${card.title}\n\n${card.summary}`;
-        
-        // Truncate for X (Twitter) to ensure it fits with the URL
-        let xContent = fullContent;
+        // Use only the title for X (Twitter)
+        let xContent = card.title || "";
         if (xContent.length > 240) {
             xContent = xContent.substring(0, 237) + "...";
         }
